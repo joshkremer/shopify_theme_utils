@@ -1,7 +1,7 @@
-staging_us='gentlefawn-staging-us'
+live_us='gentlefawn-usd'
 staging_ca='gentlefawn-staging-ca'
 
-shopify login --store $staging_us
+shopify login --store $live_us
 
 shopify theme pull --live
 
