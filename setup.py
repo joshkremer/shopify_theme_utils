@@ -14,7 +14,8 @@ setup(
     version='0.1',
     # The license can be anything you like
     license='MIT',
-    description='tools for managing multiple shopify themes'
+    description='tools for managing multiple shopify themes',
+    scripts=['bash_scripts']
     # We will also need a readme eventually (there will be a warning)
     # long_description=open('README.txt').read(),
 )
