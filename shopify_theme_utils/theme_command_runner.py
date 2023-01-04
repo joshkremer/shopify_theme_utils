@@ -3,8 +3,9 @@ import os
 
 class ShopifyThemeCommandRunner:
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         print("running Shopify Utils")
+        self.store_shortname = kwargs['store_shortname']
 
     def push_theme_unpublished(self, theme_shortname, store_shortname):
         print("publishing new unpublished theme")
@@ -18,9 +19,9 @@ class ShopifyThemeCommandRunner:
         print(command)
         os.system(command)
 
-    def theme_list(self, store_shortname):
+    def theme_list(self):
         print("listing themes")
-        command = f"cd ../shopify && shopify theme list --store{store_shortname}"
+        command = f"cd ../shopify && shopify theme list --store{self.store_shortname}"
         print(command)
         os.system(command)
 

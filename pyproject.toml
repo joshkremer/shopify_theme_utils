@@ -8,6 +8,7 @@ packages = [{include = "shopify_theme_sync"}]
 
 [tool.poetry.dependencies]
 python = "^3.10.4"
+kwargs = "^1.0.1"
 
 
 [build-system]
