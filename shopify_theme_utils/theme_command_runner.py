@@ -6,7 +6,7 @@ class ThemeCommandRunner:
     def __init__(self, **kwargs):
         print("running Shopify Utils")
         self.store_shortname = kwargs['store_shortname']
-        self.theme_shortname = kwargs['theme_shortname']
+        self.theme_shortname = kwargs.get('theme_shortname')
         self.current_dir = os.getcwd()
         self.dir_contents = os.listdir()
 
@@ -24,7 +24,6 @@ class ThemeCommandRunner:
     def theme_list(self):
         print("listing themes")
         command = f"cd ../shopify && shopify theme list --store{self.store_shortname}"
-        print(command)
         os.system(command)
 
     def delete_liquid_files(self):
