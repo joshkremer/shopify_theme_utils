@@ -18,11 +18,10 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
 
     def find_theme_base_dir(self):
-        for _ in range(3):
+        for _ in range(2):
             for f in os.listdir():
-                if f == "shopify" and os.path.isdir(f):
-                    self.shopify_theme_dir = f"{os.getcwd()}/shopify"
-                    print(self.shopify_theme_dir)
+                if f == "snippets" and os.path.isdir(f):
+                    self.shopify_theme_dir = f"{os.getcwd()}"
             os.chdir('..')
 
     def move_to_theme_dir(self):
