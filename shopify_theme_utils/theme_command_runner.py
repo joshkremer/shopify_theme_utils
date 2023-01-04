@@ -1,7 +1,7 @@
 import os
 
 
-class ShopifyUtils:
+class ShopifyThemeCommandRunner:
 
     def __init__(self):
         print("running Shopify Utils")
