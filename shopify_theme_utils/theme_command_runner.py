@@ -45,9 +45,11 @@ class ThemeCommandRunner:
         print(command)
         os.system(command)
 
-    def delete_liquid_files(self):
-        files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
-        if "/shopify/assets" in self.current_dir:
-            for f in files_to_delete:
-                print(f'Deleting: {f}')
-                os.remove(f)
+    # def delete_liquid_files(self):
+        # files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
+        # for f in os.listdir(self.shopify_theme_dir):
+        #     if f == "assets" and os.path.isdir(f):
+        #         os.chdir('assets')
+        #         for f in files_to_delete:
+        #             print(f'Deleting: {f}')
+        #             os.remove(f)
