@@ -1,5 +1,5 @@
 from theme_command_runner import ThemeCommandRunner
 
-blah = ThemeCommandRunner(store_shortname='storename-dev')
+dev_store = ThemeCommandRunner(store_shortname='storename-dev')
 
-blah.theme_list()
+dev_store.theme_list()
