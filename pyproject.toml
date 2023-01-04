@@ -1,14 +1,13 @@
 [tool.poetry]
-name = "shopify-theme-sync"
+name = "shopify-theme-utils"
 version = "0.1.0"
 description = ""
 authors = ["Josh Kremer <joshkremer@gmail.com>"]
 readme = "README.md"
-packages = [{include = "shopify_theme_sync"}]
+packages = [{include = "shopify_theme_utils"}]
 
 [tool.poetry.dependencies]
 python = "^3.10.4"
-kwargs = "^1.0.1"
 
 
 [build-system]
