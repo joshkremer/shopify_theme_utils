@@ -6,7 +6,7 @@ setup(
     author='Josh Kremer',
     author_email='joshkremer@gmail.com',
     # Needed to actually package something
-    packages=['shopify_utils'],
+    packages=['shopify_theme_utils'],
     # Needed for dependencies
     # install_requires=['numpy'],
     # *strongly* suggested for sharing
