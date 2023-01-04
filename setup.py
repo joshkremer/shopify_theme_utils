@@ -1,5 +1,6 @@
 from setuptools import setup
-
+import os
+bash_scripts = os.listdir('scripts')
 setup(
     # Needed to silence warnings (and to be a worthwhile package)
     name='Shopify theme utils',
@@ -15,7 +16,7 @@ setup(
     # The license can be anything you like
     license='MIT',
     description='tools for managing multiple shopify themes',
-    scripts=['bash_scripts']
+    scripts = ['kubeutils/kubeutils'],
     # We will also need a readme eventually (there will be a warning)
     # long_description=open('README.txt').read(),
 )
