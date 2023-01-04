@@ -2,6 +2,7 @@ import os
 
 
 class ShopifyUtils:
+
     def __init__(self):
         print("running Shopify Utils")
 
@@ -31,7 +32,3 @@ class ShopifyUtils:
             for f in files_to_delete:
                 print(f'Deleting: {f}')
                 os.remove(f)
-
-
-gentlefawndev = ShopifyUtils()
-gentlefawndev.theme_list('gentlefawn-dev')
