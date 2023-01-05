@@ -1,9 +1,13 @@
 import os
 
 
+)
+
+
 class ThemeCommandRunner:
 
     def __init__(self, **kwargs):
+        self.json_data = None
         self.store_shortname = kwargs['store_shortname']
 
         print("*******************************")
@@ -50,6 +54,20 @@ class ThemeCommandRunner:
         command = f"shopify theme list --store {self.store_shortname}"
         print(command)
         os.system(command)
+
+    def csv_to_json(self, csv_filename, json_filename):
+        import csv
+        import json
+
+        csvfile = open(csv_filename, 'r')
+        jsonfile = open(json_filename, 'w')
+
+        fieldnames = ("Redirect from", "Redirect from")
+        reader = csv.DictReader(csvfile, fieldnames)
+        for row in reader:
+            json.dump(row, jsonfile)
+            jsonfile.write('\n')
+        self.json_data = jsonfile
 
     # def delete_liquid_files(self):
         # files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
