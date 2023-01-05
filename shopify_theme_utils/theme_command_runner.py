@@ -1,9 +1,6 @@
 import os
 
 
-)
-
-
 class ThemeCommandRunner:
 
     def __init__(self, **kwargs):
