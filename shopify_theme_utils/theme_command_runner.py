@@ -33,6 +33,12 @@ class ThemeCommandRunner:
             f"{self.store_shortname}"
         os.system(command)
 
+    def theme_publish(self):
+        print("publishing new unpublished theme")
+        command = f"shopify theme push --theme={self.theme_shortname} --store " \
+            f"{self.store_shortname}"
+        os.system(command)
+
     def theme_pull(self):
         print("pulling live theme")
         command = f"shopify theme pull --store {self.store_shortname} --live"
