@@ -21,6 +21,11 @@ class ThemeCommandRunner:
     def find_theme_base_dir(self):
         if "shopify" in os.listdir():
             self.shopify_theme_dir = f"{os.getcwd()}/shopify"
+        else:
+            os.chdir('..')
+            if "shopify" in os.listdir():
+                self.shopify_theme_dir = f"{os.getcwd()}/shopify"
+
         for f in os.listdir():
             if f == "snippets" and os.path.isdir(f):
                 self.shopify_theme_dir = f"{os.getcwd()}"
@@ -31,13 +36,13 @@ class ThemeCommandRunner:
     def push_theme_unpublished(self):
         print("publishing new unpublished theme")
         command = f"shopify theme push --unpublished --theme={self.theme_shortname} --store " \
-            f"{self.store_shortname}"
+                  f"{self.store_shortname}"
         os.system(command)
 
     def theme_publish(self):
         print(f"publishing theme: {self.theme_shortname}")
         command = f"shopify theme push --theme={self.theme_shortname} --store " \
-            f"{self.store_shortname}"
+                  f"{self.store_shortname}"
         os.system(command)
 
     def theme_pull(self):
@@ -52,25 +57,30 @@ class ThemeCommandRunner:
         print(command)
         os.system(command)
 
-    def csv_to_json(self, csv_filename, json_filename):
+    def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
         import json
 
-        csvfile = open(csv_filename, 'r')
-        jsonfile = open(json_filename, 'w')
+        data = {}
+        csv_filepath = f"{self.shopify_theme_dir}/assets/{csv_filename}"
+        json_filepath = f"{self.shopify_theme_dir}/assets/{json_filename}"
 
-        fieldnames = ("Redirect from", "Redirect from")
-        reader = csv.DictReader(csvfile, fieldnames)
-        for row in reader:
-            json.dump(row, jsonfile)
-            jsonfile.write('\n')
-        self.json_data = jsonfile
+        with open(csv_filepath, encoding='utf-8') as csvf:
+            csvReader = csv.DictReader(csvf)
+            for rows in csvReader:
+                key = rows[first_header_name]
+                data[key] = rows
+
+            with open(json_filepath, 'w', encoding='utf-8') as jsonf:
+                jsonf.write(json.dumps(data, indent=4))
+
+        # Call the make_json function
 
     # def delete_liquid_files(self):
-        # files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
-        # for f in os.listdir(self.shopify_theme_dir):
-        #     if f == "assets" and os.path.isdir(f):
-        #         os.chdir('assets')
-        #         for f in files_to_delete:
-        #             print(f'Deleting: {f}')
-        #             os.remove(f)
+    # files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
+    # for f in os.listdir(self.shopify_theme_dir):
+    #     if f == "assets" and os.path.isdir(f):
+    #         os.chdir('assets')
+    #         for f in files_to_delete:
+    #             print(f'Deleting: {f}')
+    #             os.remove(f)
