@@ -1,5 +1,5 @@
 import os
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 
 class ThemeCommandRunner:
@@ -56,10 +56,9 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
         command = f"shopify theme list --store {self.store_shortname}"
         print(command)
-        sts = Popen(
-                    command, shell=True,
-                    executable='/bin/zsh'
-                    ).wait()
+        p = Popen(['zsh', '-c', command], stdout=PIPE, stderr=PIPE)
+        p.communicate()
+
 
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
