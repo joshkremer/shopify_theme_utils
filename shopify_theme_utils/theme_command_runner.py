@@ -8,6 +8,7 @@ class ThemeCommandRunner:
     def __init__(self, **kwargs):
         self.json_data = None
         self.store_shortname = kwargs['store_shortname']
+        self.shopify_cli_path = "/opt/homebrew/bin"
 
         print("*******************************")
         print("running Shopify Utils")
