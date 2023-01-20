@@ -19,7 +19,6 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
 
     def find_theme_base_dir(self):
-        print("find_theme_base_dir")
         if "snippets" and "locales" in os.listdir():
             self.shopify_theme_dir = f"{os.getcwd()}"
         else:
@@ -67,8 +66,8 @@ class ThemeCommandRunner:
         json_filepath = f"{self.shopify_theme_dir}/assets/{json_filename}"
 
         with open(csv_filepath, encoding='utf-8') as csvf:
-            csvReader = csv.DictReader(csvf)
-            for rows in csvReader:
+            csv_reader = csv.DictReader(csvf)
+            for rows in csv_reader:
                 key = rows[first_header_name]
                 data[key] = rows
 
