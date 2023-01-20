@@ -8,7 +8,7 @@ class ThemeCommandRunner:
     def __init__(self, **kwargs):
         self.json_data = None
         self.store_shortname = kwargs['store_shortname']
-        self.shopify_cli_path = "/opt/homebrew/bin"
+        self.shopify_cli_executable = "/opt/homebrew/bin/shopify"
 
         print("*******************************")
         print("running Shopify Utils")
@@ -35,26 +35,26 @@ class ThemeCommandRunner:
 
     def push_theme_unpublished(self):
         print("publishing new unpublished theme")
-        command = f"shopify theme push --unpublished --theme={self.theme_shortname} --store " \
+        command = f"{self.shopify_cli_executable} theme push --unpublished --theme={self.theme_shortname} --store " \
                   f"{self.store_shortname}"
         os.system(command)
 
     def theme_publish(self):
         print(f"publishing theme: {self.theme_shortname}")
-        command = f"shopify theme push --theme={self.theme_shortname} --store " \
+        command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} --store " \
                   f"{self.store_shortname}"
         os.system(command)
 
     def theme_pull(self):
         print("pulling live theme")
-        command = f"shopify theme pull --store {self.store_shortname} --live"
+        command = f"{self.shopify_cli_executable} theme pull --store {self.store_shortname} --live"
         os.system(command)
 
     def theme_list(self):
         print("listing themes")
         self.move_to_theme_dir()
         print(os.getcwd())
-        command = f"shopify theme list --store {self.store_shortname}"
+        command = f"{self.shopify_cli_executable} theme list --store {self.store_shortname}"
         os.system(command)
 
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
