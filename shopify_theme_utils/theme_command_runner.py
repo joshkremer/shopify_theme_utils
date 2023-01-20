@@ -19,6 +19,7 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
 
     def find_theme_base_dir(self):
+        print("find_theme_base_dir")
         if "snippets" and "locales" in os.listdir():
             self.shopify_theme_dir = f"{os.getcwd()}"
         else:
