@@ -56,7 +56,10 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
         command = f"shopify theme list --store {self.store_shortname}"
         print(command)
-        sts = Popen(command, shell=True).wait()
+        sts = Popen(
+                    command, shell=True,
+                    executable='/bin/zsh'
+                    ).wait()
 
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
