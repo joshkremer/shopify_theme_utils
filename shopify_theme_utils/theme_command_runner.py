@@ -1,5 +1,6 @@
 import os
-from subprocess import Popen, PIPE
+import sys
+from pprint import pprint
 
 
 class ThemeCommandRunner:
@@ -25,10 +26,7 @@ class ThemeCommandRunner:
         else:
             os.chdir('..')
             if "snippets" and "locales" in os.listdir():
-                self.shopify_theme_dir = f"{os.getcwd()}/shopify"
-
-        for f in os.listdir():
-            if f == "snippets" and os.path.isdir(f):
+                print("shopify theme dir found")
                 self.shopify_theme_dir = f"{os.getcwd()}"
 
     def move_to_theme_dir(self):
@@ -54,11 +52,9 @@ class ThemeCommandRunner:
     def theme_list(self):
         print("listing themes")
         self.move_to_theme_dir()
+        print(os.getcwd())
         command = f"shopify theme list --store {self.store_shortname}"
-        print(command)
-        p = Popen(['zsh', '-c', command], stdout=PIPE, stderr=PIPE)
-        print(p.stdout.readline())
-        print(p.stdout.readline())
+        os.system(command)
 
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
