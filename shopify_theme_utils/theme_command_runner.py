@@ -36,7 +36,7 @@ class ThemeCommandRunner:
     def push_theme_unpublished(self):
         print("publishing new unpublished theme")
         command = f"{self.shopify_cli_executable} theme push --unpublished --theme={self.theme_shortname} --store " \
-                  f"{self.store_shortname}"
+                  f"{self.store_shortname} --json"
         os.system(command)
 
     def theme_publish(self):
