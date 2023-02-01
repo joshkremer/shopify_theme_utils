@@ -8,6 +8,7 @@ class ThemeCommandRunner:
     def __init__(self, **kwargs):
         self.json_data = None
         self.store_shortname = kwargs['store_shortname']
+        self.allow_live = kwargs['allow_live']
         self.shopify_cli_executable = "/opt/homebrew/bin/shopify"
 
         print("*******************************")
@@ -36,14 +37,18 @@ class ThemeCommandRunner:
     def push_theme_unpublished(self):
         print("publishing new unpublished theme")
         command = f"{self.shopify_cli_executable} theme push --unpublished --theme={self.theme_shortname} --store " \
-                  f"{self.store_shortname} --json"
+                f"{self.store_shortname} --json"
         os.system(command)
 
     def theme_publish(self):
         print(f"publishing theme: {self.theme_shortname}")
-        command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} --store " \
-                  f"{self.store_shortname}"
-        os.system(command)
+        if self.allow_live == 'yes':
+            command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
+                    f"--store {self.store_shortname}, --allow-live"
+        else:
+            command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
+                    f"--store {self.store_shortname}"
+            os.system(command)
 
     def theme_pull(self):
         print("pulling live theme")
