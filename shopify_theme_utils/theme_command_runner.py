@@ -45,9 +45,11 @@ class ThemeCommandRunner:
         if self.allow_live == 'yes':
             command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
                     f"--store {self.store_shortname}, --live"
+            print(command)
         else:
             command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
                     f"--store {self.store_shortname}"
+            print(command)
             os.system(command)
 
     def theme_pull(self):
