@@ -17,7 +17,6 @@ class ThemeCommandRunner:
         print(f"shopify theme list --store {self.store_shortname}")
         print("*******************************")
 
-        self.theme_shortname = kwargs.get('theme_shortname')
         self.shopify_theme_dir = None
         self.find_theme_base_dir()
         self.move_to_theme_dir()
@@ -37,20 +36,20 @@ class ThemeCommandRunner:
     def move_to_theme_dir(self):
         os.chdir(self.shopify_theme_dir)
 
-    def push_theme_unpublished(self):
-        print("publishing new unpublished theme")
-        command = f"{self.shopify_cli_executable} theme push --unpublished --theme={self.theme_shortname} --store " \
-                f"{self.store_shortname} --json"
+    def theme_push(self, theme_name):
+        print(f"pushing theme {theme_name}")
+        command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --store " \
+                  f"{self.store_shortname} --json"
         os.system(command)
 
-    def theme_publish(self):
-        print(f"publishing theme: {self.theme_shortname}")
+    def theme_publish(self, theme_name):
+        print(f"publishing theme: {theme_name}")
         if self.allow_live == 'yes':
             command = f"{self.shopify_cli_executable} theme push --live --store {self.store_shortname}"
             print(command)
         else:
             command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
-                    f"--store {self.store_shortname}"
+                      f"--store {self.store_shortname}"
             print(command)
             os.system(command)
 
