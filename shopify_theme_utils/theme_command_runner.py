@@ -44,14 +44,9 @@ class ThemeCommandRunner:
 
     def theme_publish(self, theme_name):
         print(f"publishing theme: {theme_name}")
-        if self.allow_live == 'yes':
-            command = f"{self.shopify_cli_executable} theme push --live --store {self.store_shortname}"
-            print(command)
-        else:
-            command = f"{self.shopify_cli_executable} theme push --theme={self.theme_shortname} " \
-                      f"--store {self.store_shortname}"
-            print(command)
-            os.system(command)
+        command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --live --store {self.store_shortname}"
+        print(command)
+        os.system(command)
 
     def theme_pull(self):
         print("pulling live theme")
