@@ -38,7 +38,7 @@ class ThemeCommandRunner:
 
     def theme_push(self, theme_name):
         print(f"pushing theme {theme_name}")
-        command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --store " \
+        command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --unpublished --store " \
                   f"{self.store_shortname} --json"
         os.system(command)
 
