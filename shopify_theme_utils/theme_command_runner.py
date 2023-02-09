@@ -102,4 +102,7 @@ class ThemeCommandRunner:
                 os.chdir('assets')
                 for f in files_to_delete:
                     print(f'Deleting: {f}')
-                    os.remove(f)
+                    try:
+                        os.remove(f)
+                    except FileNotFoundError:
+                        print(f'File not found: {f}')
