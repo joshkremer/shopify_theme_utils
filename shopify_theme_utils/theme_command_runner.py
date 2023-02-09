@@ -99,10 +99,10 @@ class ThemeCommandRunner:
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
         for asset_dir in os.listdir(self.shopify_theme_dir):
             if asset_dir == "assets" and os.path.isdir(asset_dir):
-                os.chdir('assets')
                 for f in files_to_delete:
+                    filepath_to_remove = f"{self.shopify_theme_dir}/{asset_dir}/{f}"
                     print(f'Deleting: {f}')
                     try:
-                        os.remove(f)
+                        os.remove(filepath_to_remove)
                     except FileNotFoundError:
                         print(f'File not found: {f}')
