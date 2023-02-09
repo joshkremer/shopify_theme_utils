@@ -9,7 +9,7 @@ class ThemeCommandRunner:
         self.json_data = None
         self.store_shortname = kwargs['store_shortname']
         self.allow_live = kwargs.get('allow_live')
-        self.shopify_cli_executable = "/opt/homebrew/bin/shopify"
+        self.shopify_cli_executable = "shopify"
 
         print("*******************************")
         print("running Shopify Utils")
