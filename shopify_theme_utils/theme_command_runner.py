@@ -36,11 +36,19 @@ class ThemeCommandRunner:
     def move_to_theme_dir(self):
         os.chdir(self.shopify_theme_dir)
 
-    def theme_push(self, theme_name):
-        print(f"pushing theme {theme_name}")
-        command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --unpublished --store " \
-                  f"{self.store_shortname} --json"
-        os.system(command)
+    def theme_push(self, **kwargs):
+        theme_name = kwargs.get('theme_name')
+        if theme_name:
+            print(f"pushing theme: {theme_name}")
+            command = f"{self.shopify_cli_executable} theme push --theme={theme_name} " \
+                      f"--store {self.store_shortname} --json"
+            print(command)
+            os.system(command)
+        else:
+            command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --unpublished --store " \
+                      f"{self.store_shortname} --json"
+            print(command)
+            os.system(command)
 
     def theme_publish(self, theme_name):
         print(f"publishing theme: {theme_name}")
