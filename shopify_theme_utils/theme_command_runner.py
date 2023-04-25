@@ -1,6 +1,5 @@
 import os
-import sys
-from pprint import pprint
+from rich import print
 
 
 class ThemeCommandRunner:

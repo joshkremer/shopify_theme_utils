@@ -8,6 +8,7 @@ packages = [{include = "shopify_theme_utils"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10.4,<4.0"
+rich = "^13.3.4"
 
 
 
