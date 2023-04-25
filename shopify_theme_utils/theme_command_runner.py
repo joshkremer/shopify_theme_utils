@@ -45,7 +45,7 @@ class ThemeCommandRunner:
             print(command)
             os.system(command)
         else:
-            command = f"{self.shopify_cli_executable} theme push --theme={theme_name} --unpublished --store " \
+            command = f"{self.shopify_cli_executable} theme push --unpublished --theme={theme_name} --store " \
                       f"{self.store_shortname} --json"
             print(command)
             os.system(command)
