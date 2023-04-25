@@ -40,12 +40,12 @@ class ThemeCommandRunner:
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pushing theme: {theme_name}")
-            command = f"{self.shopify_cli_executable} theme push --theme={theme_name} " \
+            command = f"{self.shopify_cli_executable} theme push --unpublished --theme={theme_name} " \
                       f"--store {self.store_shortname} --json"
             print(command)
             os.system(command)
         else:
-            command = f"{self.shopify_cli_executable} theme push --unpublished --theme='{theme_name}' --store " \
+            command = f"{self.shopify_cli_executable} theme push --unpublished --store " \
                       f"{self.store_shortname} --json"
             print(command)
             os.system(command)
