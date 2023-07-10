@@ -34,6 +34,7 @@ class ThemeCommandRunner:
             os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
+        self.find_theme_base_dir()
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pushing theme: {theme_name}")
