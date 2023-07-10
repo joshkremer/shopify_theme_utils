@@ -24,6 +24,7 @@ class ThemeCommandRunner:
         base_dir = os.getcwd()
         parent_dir = os.path.dirname(os.getcwd())
         shopify_dir = f"{base_dir}/shopify"
+        self.shopify_theme_dir = shopify_dir
 
         if "snippets" and "locales" in os.listdir(base_dir):
             self.shopify_theme_dir = base_dir
