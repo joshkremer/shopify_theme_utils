@@ -97,7 +97,7 @@ class ThemeCommandRunner:
         files_in_dir = os.listdir(self.shopify_theme_dir)
         for f in files_in_dir:
             print(f"removing: {f}")
-            os.remove(f)
+            shutil.rmtree(f"{self.shopify_theme_dir}/{f}")
 
     def delete_liquid_files(self):
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
