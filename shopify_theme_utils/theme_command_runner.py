@@ -38,7 +38,6 @@ class ThemeCommandRunner:
             os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
-        self.find_theme_base_dir()
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pushing theme: {theme_name}")
@@ -60,7 +59,6 @@ class ThemeCommandRunner:
 
     def theme_pull(self, **kwargs):
         theme_name = kwargs.get('theme_name')
-        self.find_theme_base_dir()
         if theme_name:
             print(f"pulling existing theme: {theme_name}")
             command = f"{self.shopify_cli_executable} theme pull --theme '{theme_name}' --store {self.store_shortname}"
@@ -68,6 +66,7 @@ class ThemeCommandRunner:
 
         else:
             print("pulling live theme")
+            print("current dir: ", os.getcwd())
             command = f"{self.shopify_cli_executable} theme pull --store {self.store_shortname} --live"
 
         os.system(command)
@@ -98,7 +97,6 @@ class ThemeCommandRunner:
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
-        self.find_theme_base_dir()
         files_in_dir = os.listdir(os.getcwd())
         for f in files_in_dir:
             print(f"removing: {f}")
