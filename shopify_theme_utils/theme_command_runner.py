@@ -92,6 +92,7 @@ class ThemeCommandRunner:
         time.sleep(1)
         os.mkdir(self.shopify_theme_dir)
         time.sleep(2)
+        self.find_theme_base_dir()
 
     def delete_liquid_files(self):
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
