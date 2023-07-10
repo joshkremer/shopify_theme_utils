@@ -5,6 +5,7 @@ from rich import print
 class ThemeCommandRunner:
 
     def __init__(self, **kwargs):
+        self.shopify_theme_dir = None
         self.json_data = None
         self.store_shortname = kwargs['store_shortname']
         self.allow_live = kwargs.get('allow_live')
@@ -15,27 +16,15 @@ class ThemeCommandRunner:
         print("run in terminal to authenticate...")
         print(f"shopify theme list --store {self.store_shortname}")
         print("*******************************")
-
-        self.shopify_theme_dir = None
         self.find_theme_base_dir()
-        self.move_to_theme_dir()
 
     def find_theme_base_dir(self):
         base_dir = os.getcwd()
         parent_dir = os.path.dirname(os.getcwd())
 
-        if "snippets" and "locales" in os.listdir(base_dir):
+        if "shopify" in os.listdir(base_dir):
             self.shopify_theme_dir = f"{base_dir}/shopify"
-
-        elif "snippets" and "locales" in os.listdir(parent_dir):
-            self.shopify_theme_dir = f"{parent_dir}/shopify"
-
-        else:
-            print("directory is empty")
-            self.shopify_theme_dir = f"{base_dir}/shopify"
-
-    def move_to_theme_dir(self):
-        os.chdir(self.shopify_theme_dir)
+            os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
         theme_name = kwargs.get('theme_name')
@@ -72,8 +61,6 @@ class ThemeCommandRunner:
 
     def theme_list(self):
         print("listing themes")
-        self.move_to_theme_dir()
-        print(os.getcwd())
         command = f"{self.shopify_cli_executable} theme list --store {self.store_shortname}"
         os.system(command)
 
