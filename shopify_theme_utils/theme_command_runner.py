@@ -88,11 +88,10 @@ class ThemeCommandRunner:
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
-        shutil.rmtree(self.shopify_theme_dir)
-        time.sleep(1)
-        os.mkdir(self.shopify_theme_dir)
-        time.sleep(2)
-        self.find_theme_base_dir()
+        files_in_dir = os.listdir(self.shopify_theme_dir)
+        for f in files_in_dir:
+            print(f"removing: {f}")
+            os.remove(f)
 
     def delete_liquid_files(self):
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
