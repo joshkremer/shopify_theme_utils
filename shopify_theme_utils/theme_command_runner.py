@@ -23,14 +23,18 @@ class ThemeCommandRunner:
 
     def find_theme_base_dir(self):
         base_dir = os.getcwd()
+        if base_dir.endswith("shopify"):
+            base_dir = base_dir.replace("shopify", "")
         parent_dir = os.path.dirname(os.getcwd())
 
         if "shopify" in os.listdir(base_dir):
+            base_dir_contents = os.listdir(base_dir)
             self.shopify_theme_dir = f"{base_dir}/shopify"
             os.chdir(self.shopify_theme_dir)
         else:
             self.shopify_theme_dir = f"{base_dir}/shopify"
-            os.mkdir(self.shopify_theme_dir)
+            if not os.path.exists(self.shopify_theme_dir):
+                os.mkdir(self.shopify_theme_dir)
             os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
@@ -94,7 +98,8 @@ class ThemeCommandRunner:
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
-        files_in_dir = os.listdir(self.shopify_theme_dir)
+        self.find_theme_base_dir()
+        files_in_dir = os.listdir(os.getcwd())
         for f in files_in_dir:
             print(f"removing: {f}")
             shutil.rmtree(f"{self.shopify_theme_dir}/{f}")
