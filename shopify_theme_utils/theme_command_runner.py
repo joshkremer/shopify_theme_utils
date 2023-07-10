@@ -28,6 +28,10 @@ class ThemeCommandRunner:
         if "shopify" in os.listdir(base_dir):
             self.shopify_theme_dir = f"{base_dir}/shopify"
             os.chdir(self.shopify_theme_dir)
+        else:
+            self.shopify_theme_dir = f"{base_dir}/shopify"
+            os.mkdir(self.shopify_theme_dir)
+            os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
         theme_name = kwargs.get('theme_name')
