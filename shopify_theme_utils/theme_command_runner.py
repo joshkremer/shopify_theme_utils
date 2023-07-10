@@ -1,5 +1,6 @@
 import os
 from rich import print
+import shutil
 
 
 class ThemeCommandRunner:
@@ -82,6 +83,11 @@ class ThemeCommandRunner:
                 jsonf.write(json.dumps(data, indent=4))
 
         # Call the make_json function
+
+    def rebuild_shopify_dir(self):
+        print("rebuilding shopify dir")
+        shutil.rmtree(self.shopify_theme_dir)
+        os.mkdir(self.shopify_theme_dir)
 
     def delete_liquid_files(self):
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
