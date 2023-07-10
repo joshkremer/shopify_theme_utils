@@ -55,6 +55,7 @@ class ThemeCommandRunner:
 
     def theme_pull(self, **kwargs):
         theme_name = kwargs.get('theme_name')
+        self.find_theme_base_dir()
         if theme_name:
             print(f"pulling existing theme: {theme_name}")
             command = f"{self.shopify_cli_executable} theme pull --theme '{theme_name}' --store {self.store_shortname}"
