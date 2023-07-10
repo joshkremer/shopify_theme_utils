@@ -21,19 +21,19 @@ class ThemeCommandRunner:
         self.move_to_theme_dir()
 
     def find_theme_base_dir(self):
-        base_dir = os.getcwd()
-        parent_dir = os.path.dirname(os.getcwd())
-        shopify_dir = f"{base_dir}/shopify"
-        self.shopify_theme_dir = shopify_dir
+        def find_theme_base_dir(self):
+            base_dir = os.getcwd()
+            parent_dir = os.path.dirname(os.getcwd())
 
-        if "snippets" and "locales" in os.listdir(base_dir):
-            self.shopify_theme_dir = base_dir
-        elif "snippets" and "locales" in os.listdir(shopify_dir):
-            self.shopify_theme_dir = f"{shopify_dir}"
-        else:
-            if "snippets" and "locales" in os.listdir(parent_dir):
-                print("shopify theme dir found")
-                self.shopify_theme_dir = f"{os.getcwd()}"
+            if "snippets" and "locales" in os.listdir(base_dir):
+                self.shopify_theme_dir = f"{base_dir}/shopify"
+
+            elif "snippets" and "locales" in os.listdir(parent_dir):
+                self.shopify_theme_dir = f"{parent_dir}/shopify"
+
+            else:
+                print("directory is empty")
+                self.shopify_theme_dir = f"{base_dir}/shopify"
 
     def move_to_theme_dir(self):
         os.chdir(self.shopify_theme_dir)
