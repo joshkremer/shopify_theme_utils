@@ -23,6 +23,8 @@ class ThemeCommandRunner:
 
     def find_theme_base_dir(self):
         base_dir = os.getcwd()
+        if base_dir.endswith("theme_files"):
+            base_dir = base_dir.replace("/theme_files", "")
         parent_dir = os.path.dirname(os.getcwd())
         theme_files_dir = f"{base_dir}/theme_files"
         if not os.path.exists(theme_files_dir):
