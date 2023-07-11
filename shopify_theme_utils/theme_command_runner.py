@@ -23,21 +23,15 @@ class ThemeCommandRunner:
 
     def find_theme_base_dir(self):
         base_dir = os.getcwd()
-        if base_dir.endswith("shopify"):
-            base_dir = base_dir.replace("shopify", "")
         parent_dir = os.path.dirname(os.getcwd())
-
-        if "shopify" in os.listdir(base_dir):
-            base_dir_contents = os.listdir(base_dir)
-            self.shopify_theme_dir = f"{base_dir}/shopify"
-            os.chdir(self.shopify_theme_dir)
-        else:
-            self.shopify_theme_dir = f"{base_dir}/shopify"
-            if not os.path.exists(self.shopify_theme_dir):
-                os.mkdir(self.shopify_theme_dir)
-            os.chdir(self.shopify_theme_dir)
+        theme_files_dir = f"{base_dir}/theme_files"
+        if not os.path.exists(theme_files_dir):
+            os.mkdir(theme_files_dir)
+        self.shopify_theme_dir = theme_files_dir
+        os.chdir(self.shopify_theme_dir)
 
     def theme_push(self, **kwargs):
+        print(self.shopify_theme_dir)
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pushing theme: {theme_name}")
@@ -66,7 +60,6 @@ class ThemeCommandRunner:
 
         else:
             print("pulling live theme")
-            print("current dir: ", os.getcwd())
             command = f"{self.shopify_cli_executable} theme pull --store {self.store_shortname} --live"
 
         os.system(command)
@@ -97,7 +90,7 @@ class ThemeCommandRunner:
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
-        files_in_dir = os.listdir(os.getcwd())
+        files_in_dir = os.listdir(self.shopify_theme_dir)
         for f in files_in_dir:
             print(f"removing: {f}")
             shutil.rmtree(f"{self.shopify_theme_dir}/{f}")
