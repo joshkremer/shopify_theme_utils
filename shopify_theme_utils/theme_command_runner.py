@@ -1,4 +1,5 @@
 import os
+import subprocess
 from rich import print
 import shutil
 
@@ -35,39 +36,42 @@ class ThemeCommandRunner:
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pushing theme: {theme_name}")
-            command = f"{self.shopify_cli_executable} theme push --unpublished --theme={theme_name} " \
-                      f"--store {self.store_shortname} --json"
-            print(command)
-            os.system(command)
+            command = [self.shopify_cli_executable, "theme", "push", "--unpublished", "--theme",
+                       theme_name, "--store", self.store_shortname, "--json"]
+            print(' '.join(command))
+            subprocess.run(command)
         else:
-            command = f"{self.shopify_cli_executable} theme push --unpublished --store " \
-                      f"{self.store_shortname} --json"
-            print(command)
-            os.system(command)
+            command = [self.shopify_cli_executable, "theme", "push", "--unpublished", "--store",
+                       self.store_shortname, "--json"]
+            print(' '.join(command))
+            subprocess.run(command)
 
     def theme_publish(self, theme_name):
         print(f"publishing theme: {theme_name}")
-        command = f"{self.shopify_cli_executable} theme push --theme '{theme_name}' --live --store {self.store_shortname}"
-        print(command)
-        os.system(command)
+        command = [self.shopify_cli_executable, "theme", "push", "--theme",
+                   theme_name, "--live", "--store", self.store_shortname]
+        print(' '.join(command))
+        subprocess.run(command)
 
     def theme_pull(self, **kwargs):
         theme_name = kwargs.get('theme_name')
         if theme_name:
             print(f"pulling existing theme: {theme_name}")
-            command = f"{self.shopify_cli_executable} theme pull --theme '{theme_name}' --store {self.store_shortname}"
-            print(command)
-
+            command = [self.shopify_cli_executable, "theme", "pull", "--theme",
+                       theme_name, "--store", self.store_shortname]
+            print(' '.join(command))
         else:
             print("pulling live theme")
-            command = f"{self.shopify_cli_executable} theme pull --store {self.store_shortname} --live"
+            command = [self.shopify_cli_executable, "theme", "pull", "--store",
+                       self.store_shortname, "--live"]
 
-        os.system(command)
+        subprocess.run(command)
 
     def theme_list(self):
         print("listing themes")
-        command = f"{self.shopify_cli_executable} theme list --store {self.store_shortname}"
-        os.system(command)
+        command = [self.shopify_cli_executable, "theme", "list", "--store",
+                   self.store_shortname]
+        subprocess.run(command)
 
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
@@ -85,8 +89,6 @@ class ThemeCommandRunner:
 
             with open(json_filepath, 'w', encoding='utf-8') as jsonf:
                 jsonf.write(json.dumps(data, indent=4))
-
-        # Call the make_json function
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
