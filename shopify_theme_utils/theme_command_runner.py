@@ -99,10 +99,15 @@ class ThemeCommandRunner:
 
     def rebuild_shopify_dir(self):
         print("rebuilding shopify dir")
-        files_in_dir = os.listdir(self.shopify_theme_dir)
-        for f in files_in_dir:
-            print(f"removing: {f}")
-            shutil.rmtree(f"{self.shopify_theme_dir}/{f}")
+        for filename in os.listdir(self.shopify_theme_dir):
+            file_path = os.path.join(self.shopify_theme_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)  # remove file or symbolic link
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)  # remove directory
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
 
     def delete_liquid_files(self):
         files_to_delete = ["buddha-megamenu.js", "ico-select.svg", "theme.scss"]
