@@ -62,7 +62,7 @@ class ThemeCommandRunner:
                        theme_name, "--store", self.store_shortname]
             print(' '.join(command))
 
-        if theme_id:
+        elif theme_id:
             print(f"pulling existing theme: {theme_name}")
             command = [self.shopify_cli_executable, "theme", "pull", "--theme",
                        theme_id, "--store", self.store_shortname]
