@@ -57,7 +57,7 @@ class ThemeCommandRunner:
         theme_name = kwargs.get('theme_name')
         theme_id = kwargs.get('theme_id')
         if theme_name:
-            print(f"pulling existing theme: {theme_name}")
+            print(f"pulling existineeeeg theme: {theme_name}")
             command = [self.shopify_cli_executable, "theme", "pull", "--theme",
                        theme_name, "--store", self.store_shortname]
             print(' '.join(command))
