@@ -80,6 +80,12 @@ class ThemeCommandRunner:
                    self.store_shortname]
         subprocess.run(command)
 
+
+    def theme_test_local(self):
+        print("shopify theme dev - running locally")
+        command = [self.shopify_cli_executable, "theme", "dev"]
+        subprocess.run(command)
+
     def csv_to_json(self, csv_filename, json_filename, first_header_name):
         import csv
         import json
