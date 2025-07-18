@@ -1,3 +1,4 @@
 /shopify/
 .idea/
 /poetry.lock
+/shopify_theme_utils/theme_files
