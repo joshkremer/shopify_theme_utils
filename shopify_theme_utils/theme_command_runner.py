@@ -7,6 +7,10 @@ import csv
 import json
 
 
+class LiveThemeOverwriteError(RuntimeError):
+    """Raised when an operation would overwrite the live theme without explicit consent."""
+
+
 def find_theme_base_dir():
     base_dir = Path.cwd()
     if base_dir.name == "theme_files":
@@ -69,10 +73,18 @@ class ThemeCommandRunner:
             except Exception:
                 live_theme_id = None
             if live_theme_id is not None and str(theme_id) == str(live_theme_id):
-                raise RuntimeError(
-                    "Refusing to overwrite the live theme. Pass allow_live=True "
-                    "(or set allow_live on ThemeCommandRunner) to proceed."
+                msg = (
+                    "Refusing to overwrite the LIVE theme.\n\n"
+                    f"Store: {self.store_shortname}\n"
+                    f"Theme id requested: {theme_id}\n"
+                    f"Live theme id:       {live_theme_id}\n\n"
+                    "If this is intentional, re-run with explicit consent:\n"
+                    f"  ThemeCommandRunner(store_shortname='{self.store_shortname}', allow_live=True)."
+                    f"theme_push_overwrite({theme_id})\n"
+                    "or:\n"
+                    f"  runner.theme_push_overwrite({theme_id}, allow_live=True)\n"
                 )
+                raise LiveThemeOverwriteError(msg)
 
         print(f"overwriting existing theme id: {theme_id}")
         command = [
