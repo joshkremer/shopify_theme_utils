@@ -4,3 +4,4 @@
 /shopify_theme_utils/theme_files
 /.DS_Store
 /Shopify_theme_utils.egg-info/
+__pycache__

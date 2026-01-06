@@ -45,6 +45,84 @@ class ThemeCommandRunner:
             command += ["--theme", theme_name]
         _run_command(command)
 
+    def theme_push_overwrite(self, theme_id, *, allow_live=None):
+        """Push local files to an *existing* theme, overwriting its contents.
+
+        Args:
+            theme_id: Existing Shopify theme ID.
+            allow_live: Optional override for the instance's allow_live flag.
+
+        Notes:
+            - Does NOT pass --unpublished; it targets the given theme.
+            - Refuses to run for the live theme unless allow_live is truthy.
+        """
+        if theme_id is None or str(theme_id).strip() == "":
+            raise ValueError("theme_id is required")
+
+        effective_allow_live = self.allow_live if allow_live is None else allow_live
+
+        # Guardrail: prevent accidental overwrites of the live theme.
+        # Shopify theme IDs are numeric; we string-cast to be safe.
+        if not effective_allow_live:
+            try:
+                live_theme_id = self._get_live_theme_id()
+            except Exception:
+                live_theme_id = None
+            if live_theme_id is not None and str(theme_id) == str(live_theme_id):
+                raise RuntimeError(
+                    "Refusing to overwrite the live theme. Pass allow_live=True "
+                    "(or set allow_live on ThemeCommandRunner) to proceed."
+                )
+
+        print(f"overwriting existing theme id: {theme_id}")
+        command = [
+            self.shopify_cli_executable,
+            "theme",
+            "push",
+            "--theme",
+            str(theme_id),
+            "--store",
+            self.store_shortname,
+            "--json",
+        ]
+        _run_command(command)
+
+    def _get_live_theme_id(self):
+        """Best-effort helper to find the live theme ID via `shopify theme list --json`."""
+        command = [
+            self.shopify_cli_executable,
+            "theme",
+            "list",
+            "--store",
+            self.store_shortname,
+            "--json",
+        ]
+        proc = subprocess.run(command, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr.strip() or "Failed to list themes")
+
+        # Shopify CLI emits JSON; tolerate noisy output by locating the first '[' or '{'.
+        stdout = proc.stdout.strip()
+        start = min([i for i in (stdout.find("["), stdout.find("{")) if i != -1], default=-1)
+        if start == -1:
+            raise ValueError("Unexpected JSON output from shopify theme list")
+        payload = json.loads(stdout[start:])
+
+        # Common shape is a list of themes with a role field.
+        if isinstance(payload, dict) and "themes" in payload:
+            themes = payload["themes"]
+        else:
+            themes = payload
+
+        if not isinstance(themes, list):
+            raise ValueError("Unexpected themes payload")
+
+        for theme in themes:
+            role = theme.get("role")
+            if role == "live":
+                return theme.get("id")
+        return None
+
     def theme_publish(self, theme_name):
         print(f"publishing theme: {theme_name}")
         command = [
