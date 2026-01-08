@@ -5,10 +5,27 @@ from rich import print
 import shutil
 import csv
 import json
+import re
+from typing import Any
 
 
 class LiveThemeOverwriteError(RuntimeError):
     """Raised when an operation would overwrite the live theme without explicit consent."""
+
+
+# Shopify dev stores often don't have the same metafield definitions as prod.
+# These strings in JSON templates will cause `shopify theme push` to fail.
+_BAD_DYNAMIC_SOURCE_SUBSTRS = [
+    "product.metafields.global.sustainability",
+    "product.metafields.c_f.product_details",
+    "product.metafields.c_f.product_sizing",
+    "product.metafields.c_f.product_care",
+    "product.metafields.c_f.product_materials",
+]
+
+# Shopify admin sometimes prefixes JSON templates with a /* ... */ comment header.
+# That's not valid JSON, so we strip it before parsing.
+_LEADING_BLOCK_COMMENT_RE = re.compile(r"^\s*/\*.*?\*/\s*", re.DOTALL)
 
 
 def find_theme_base_dir():
@@ -74,15 +91,20 @@ class ThemeCommandRunner:
                 live_theme_id = None
             if live_theme_id is not None and str(theme_id) == str(live_theme_id):
                 msg = (
-                    "Refusing to overwrite the LIVE theme.\n\n"
+                    "Refusing to overwrite the live theme. Pass allow_live=True (or set allow_live on ThemeCommandRunner) to proceed.\n\n"
                     f"Store: {self.store_shortname}\n"
                     f"Theme id requested: {theme_id}\n"
-                    f"Live theme id:       {live_theme_id}\n\n"
+                    f"Live theme id:       {live_theme_id}\n"
+                )
+                # Handle this error here so callers see a friendly message (not a traceback)
+                print(
+                    "[bold red]Refusing to overwrite the live theme.[/bold red]\n"
+                    f"[dim]Store:[/dim] {self.store_shortname}\n"
+                    f"[dim]Theme id requested:[/dim] {theme_id}\n"
+                    f"[dim]Live theme id:[/dim] {live_theme_id}\n\n"
                     "If this is intentional, re-run with explicit consent:\n"
-                    f"  ThemeCommandRunner(store_shortname='{self.store_shortname}', allow_live=True)."
-                    f"theme_push_overwrite({theme_id})\n"
-                    "or:\n"
                     f"  runner.theme_push_overwrite({theme_id}, allow_live=True)\n"
+                    "or construct the runner with allow_live=True."
                 )
                 raise LiveThemeOverwriteError(msg)
 
@@ -212,3 +234,143 @@ class ThemeCommandRunner:
                     filepath_to_remove.unlink()
                 except FileNotFoundError:
                     print(f'File not found: {f}')
+
+    def remove_app_blocks(self, *, dry_run: bool = False, scrub_missing_metafields: bool = True) -> dict:
+        """Remove hard-coded Shopify app blocks from JSON templates.
+
+        This is useful when pushing a theme to a dev store that doesn't have the
+        same apps/metafields installed as prod.
+
+        Behavior:
+          - For all templates/*.json, remove any blocks whose type starts with
+            "shopify://apps/" and prune their IDs from block_order.
+          - Optionally scrub known-bad metafield dynamic sources inside
+            collapsible_tab blocks for product templates.
+
+        Returns:
+            Summary dict: scanned/changed/removed_app_blocks/scrubbed_metafields.
+        """
+
+        def _read_template_json(template_path: Path) -> dict[str, Any]:
+            raw = template_path.read_text(encoding="utf-8", errors="replace")
+            raw2 = _LEADING_BLOCK_COMMENT_RE.sub("", raw, count=1)
+            return json.loads(raw2)
+
+        def _write_template_json(template_path: Path, data: dict[str, Any]) -> None:
+            template_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        def _is_app_block(block: dict[str, Any]) -> bool:
+            t = (block.get("type") or "")
+            return isinstance(t, str) and t.startswith("shopify://apps/")
+
+        def _clean_template(data: dict[str, Any]) -> tuple[dict[str, Any], int]:
+            removed = 0
+            sections = data.get("sections") or {}
+            if not isinstance(sections, dict):
+                return data, 0
+            for sec in sections.values():
+                if not isinstance(sec, dict):
+                    continue
+                blocks = sec.get("blocks")
+                if not isinstance(blocks, dict):
+                    continue
+
+                remove_ids = [
+                    bid
+                    for bid, b in blocks.items()
+                    if isinstance(b, dict) and _is_app_block(b)
+                ]
+                for bid in remove_ids:
+                    blocks.pop(bid, None)
+                removed += len(remove_ids)
+
+                order = sec.get("block_order")
+                if isinstance(order, list) and remove_ids:
+                    remove_set = set(remove_ids)
+                    sec["block_order"] = [x for x in order if x not in remove_set]
+            return data, removed
+
+        def _scrub_missing_metafield_dynamic_sources(template_path: Path) -> bool:
+            try:
+                data = _read_template_json(template_path)
+            except Exception:
+                return False
+
+            changed = False
+            sections = data.get("sections") or {}
+            if not isinstance(sections, dict):
+                return False
+
+            for section in sections.values():
+                if not isinstance(section, dict):
+                    continue
+                blocks = section.get("blocks")
+                if not isinstance(blocks, dict):
+                    continue
+                for block in blocks.values():
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") != "collapsible_tab":
+                        continue
+                    settings = block.get("settings")
+                    if not isinstance(settings, dict):
+                        continue
+                    content = settings.get("content")
+                    if not isinstance(content, str):
+                        continue
+
+                    if any(s in content for s in _BAD_DYNAMIC_SOURCE_SUBSTRS):
+                        settings["content"] = ""
+                        changed = True
+
+            if changed and not dry_run:
+                _write_template_json(template_path, data)
+            return changed
+
+        templates_dir = self.shopify_theme_dir / "templates"
+        summary = {
+            "templates_dir": str(templates_dir),
+            "scanned": 0,
+            "changed": 0,
+            "removed_app_blocks": 0,
+            "scrubbed_metafields": 0,
+            "files_changed": [],
+        }
+
+        if not templates_dir.exists():
+            print(f"[yellow]No templates dir found:[/yellow] {templates_dir}")
+            return summary
+
+        templates = sorted(templates_dir.glob("*.json"))
+        for template_path in templates:
+            summary["scanned"] += 1
+
+            try:
+                data = _read_template_json(template_path)
+            except Exception as e:
+                print(f"[red]Skipping unreadable JSON:[/red] {template_path} ({e})")
+                continue
+
+            data2, removed = _clean_template(data)
+            changed = False
+
+            if removed:
+                summary["removed_app_blocks"] += removed
+                changed = True
+                if not dry_run:
+                    _write_template_json(template_path, data2)
+                print(f"{template_path.relative_to(self.shopify_theme_dir)}: removed {removed} app blocks")
+
+            if scrub_missing_metafields and template_path.name.startswith("product"):
+                if _scrub_missing_metafield_dynamic_sources(template_path):
+                    summary["scrubbed_metafields"] += 1
+                    changed = True
+                    msg = f"{template_path.relative_to(self.shopify_theme_dir)}: scrubbed missing-metafield dynamic sources"
+                    print(msg if not dry_run else f"(dry-run) {msg}")
+
+            if changed:
+                summary["changed"] += 1
+                summary["files_changed"].append(str(template_path))
+
+        print(f"Processed {len(templates)} templates in {templates_dir}")
+        return summary
