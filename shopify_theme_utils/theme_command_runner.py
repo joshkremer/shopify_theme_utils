@@ -76,6 +76,9 @@ class ThemeCommandRunner:
         Notes:
             - Does NOT pass --unpublished; it targets the given theme.
             - Refuses to run for the live theme unless allow_live is truthy.
+
+        Returns:
+            True if the push command was started, False if it was refused.
         """
         if theme_id is None or str(theme_id).strip() == "":
             raise ValueError("theme_id is required")
@@ -90,13 +93,6 @@ class ThemeCommandRunner:
             except Exception:
                 live_theme_id = None
             if live_theme_id is not None and str(theme_id) == str(live_theme_id):
-                msg = (
-                    "Refusing to overwrite the live theme. Pass allow_live=True (or set allow_live on ThemeCommandRunner) to proceed.\n\n"
-                    f"Store: {self.store_shortname}\n"
-                    f"Theme id requested: {theme_id}\n"
-                    f"Live theme id:       {live_theme_id}\n"
-                )
-                # Handle this error here so callers see a friendly message (not a traceback)
                 print(
                     "[bold red]Refusing to overwrite the live theme.[/bold red]\n"
                     f"[dim]Store:[/dim] {self.store_shortname}\n"
@@ -106,7 +102,8 @@ class ThemeCommandRunner:
                     f"  runner.theme_push_overwrite({theme_id}, allow_live=True)\n"
                     "or construct the runner with allow_live=True."
                 )
-                raise LiveThemeOverwriteError(msg)
+                # Deliberately avoid raising here so users don't get a traceback.
+                return False
 
         print(f"overwriting existing theme id: {theme_id}")
         command = [
@@ -120,6 +117,7 @@ class ThemeCommandRunner:
             "--json",
         ]
         _run_command(command)
+        return True
 
     def _get_live_theme_id(self):
         """Best-effort helper to find the live theme ID via `shopify theme list --json`."""
