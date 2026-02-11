@@ -524,26 +524,29 @@ class ThemeCommandRunner:
             wanted = [n.strip() for n in theme_names if isinstance(n, str) and n.strip()]
             if not wanted:
                 raise ValueError("theme_names was provided but empty")
-            wanted_lc = {n.casefold() for n in wanted}
 
-            # Pick themes whose display name matches one of the requested names.
+            wanted_lc = {n.casefold() for n in wanted}
+            wanted_ids = {w for w in wanted if w.isdigit()}
+
+            # Pick themes whose id or display name matches one of the requested values.
             for t in themes_sorted:
                 tid = t.get("id")
                 if tid is None:
                     continue
                 if not include_live and live_id is not None and str(tid) == str(live_id):
                     continue
+
+                tid_s = str(tid)
                 disp = self._theme_display_name(t)
-                if disp and disp.casefold() in wanted_lc:
+                if tid_s in wanted_ids or (disp and disp.casefold() in wanted_lc):
                     selected.append(t)
 
             found_lc = {self._theme_display_name(t).casefold() for t in selected if self._theme_display_name(t)}
-            missing = [n for n in wanted if n.casefold() not in found_lc]
+            found_ids = {str(t.get("id")) for t in selected if t.get("id") is not None}
+
+            missing = [n for n in wanted if (n.isdigit() and n not in found_ids) or (not n.isdigit() and n.casefold() not in found_lc)]
             if missing:
-                print(
-                    "[yellow]Some requested theme names were not found:[/yellow] "
-                    + ", ".join(missing)
-                )
+                print("[yellow]Some requested themes were not found:[/yellow] " + ", ".join(missing))
         else:
             # Default behavior: select most recent themes.
             for t in themes_sorted:

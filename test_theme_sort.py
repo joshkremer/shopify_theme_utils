@@ -92,3 +92,22 @@ def test_theme_display_name_and_matching_case_insensitive():
             selected.append(t)
 
     assert {ThemeCommandRunner._theme_display_name(t) for t in selected} == {"My Theme", "Another Theme"}
+
+
+def test_theme_name_list_can_include_ids():
+    themes = [
+        {"id": 111, "name": "Alpha", "updated_at": "2025-01-01T00:00:00Z"},
+        {"id": 222, "name": "Beta", "updated_at": "2025-01-02T00:00:00Z"},
+    ]
+    wanted = ["111", "beta"]
+    wanted_lc = {w.casefold() for w in wanted}
+    wanted_ids = {w for w in wanted if w.isdigit()}
+
+    selected = []
+    for t in sorted(themes, key=ThemeCommandRunner._parse_theme_sort_ts, reverse=True):
+        tid_s = str(t.get("id"))
+        disp = ThemeCommandRunner._theme_display_name(t)
+        if tid_s in wanted_ids or (disp and disp.casefold() in wanted_lc):
+            selected.append(t)
+
+    assert {t["id"] for t in selected} == {111, 222}
