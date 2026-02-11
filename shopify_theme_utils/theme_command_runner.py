@@ -429,16 +429,18 @@ class ThemeCommandRunner:
     def _parse_theme_sort_ts(theme: dict[str, Any]) -> datetime:
         """Pick a best-effort timestamp to sort themes by recency.
 
+        Default priority is `updated_at`, then `created_at` (with camelCase
+        variants). Other timestamp fields are intentionally ignored by default
+        to match expected Shopify theme list behavior.
+
         Returns a timezone-aware datetime when possible. Missing/unparseable
         values evaluate as very old so they sort last.
         """
         for key in (
             "updated_at",
-            "created_at",
-            "last_published_at",
             "updatedAt",
+            "created_at",
             "createdAt",
-            "lastPublishedAt",
         ):
             v = theme.get(key)
             if isinstance(v, str) and v:
@@ -446,7 +448,7 @@ class ThemeCommandRunner:
                 try:
                     dt = datetime.fromisoformat(vv)
                     if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
+                        dt = dt.replace(tzinfo=datetime.now(timezone.utc).tzinfo)
                     return dt
                 except Exception:
                     continue
