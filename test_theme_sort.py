@@ -46,3 +46,32 @@ def test_selection_all_when_count_none():
         if len(selected) >= count_int:
             break
     assert [t["id"] for t in selected] == [1, 2, 3]
+
+
+def test_manifest_skip_logic(tmp_path=None):
+    # This file isn't using pytest, so we implement a tiny tmp dir fallback.
+    import tempfile
+    from pathlib import Path
+    import json
+
+    base = tmp_path if tmp_path is not None else Path(tempfile.mkdtemp())
+    theme_dir = base / "My Theme"
+    theme_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest = theme_dir / ".shopify-theme-utils.json"
+    manifest.write_text(json.dumps({"theme_id": 123}) + "\n", encoding="utf-8")
+
+    def already_downloaded(d: Path, theme_id) -> bool:
+        if not d.exists() or not d.is_dir():
+            return False
+        mp = d / ".shopify-theme-utils.json"
+        if not mp.exists():
+            return False
+        try:
+            data = json.loads(mp.read_text(encoding="utf-8"))
+        except Exception:
+            return False
+        return str(data.get("theme_id")) == str(theme_id)
+
+    assert already_downloaded(theme_dir, 123) is True
+    assert already_downloaded(theme_dir, 124) is False

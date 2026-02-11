@@ -464,6 +464,7 @@ class ThemeCommandRunner:
         include_live: bool | None = None,
         allow_live: bool | None = None,
         continue_on_error: bool = True,
+        skip_if_downloaded: bool = True,
     ) -> dict[str, Any]:
         """Download the most recent `count` themes into `previous-themes/<title>/`.
 
@@ -474,6 +475,8 @@ class ThemeCommandRunner:
             include_live: If True, include the live theme in candidates.
             allow_live: Explicit consent to download live theme (extra guardrail).
             continue_on_error: If True, keep going when a theme pull fails.
+            skip_if_downloaded: If True, skip themes that appear to already be
+                downloaded (based on a manifest file in the destination dir).
 
         Returns:
             Summary dict with downloaded themes and any errors.
@@ -522,9 +525,34 @@ class ThemeCommandRunner:
             "requested": count_int if count_int is not None else len(selected),
             "selected": [],
             "downloaded": [],
+            "skipped": [],
             "errors": [],
             "skipped_live": False,
         }
+
+        manifest_name = ".shopify-theme-utils.json"
+
+        def _already_downloaded(theme_dir: Path, theme_id: Any) -> bool:
+            if not theme_dir.exists() or not theme_dir.is_dir():
+                return False
+            manifest_path = theme_dir / manifest_name
+            if not manifest_path.exists():
+                return False
+            try:
+                data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except Exception:
+                return False
+            return str(data.get("theme_id")) == str(theme_id)
+
+        def _write_manifest(theme_dir: Path, theme: dict[str, Any]) -> None:
+            payload = {
+                "theme_id": theme.get("id"),
+                "title": theme.get("name") or theme.get("title"),
+                "role": theme.get("role"),
+                "store": self.store_shortname,
+                "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            }
+            (theme_dir / manifest_name).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
         for t in selected:
             tid = t.get("id")
@@ -548,10 +576,15 @@ class ThemeCommandRunner:
                 safe = f"{safe}-{n}"
 
             theme_dir = out_base / safe
-            theme_dir.mkdir(parents=True, exist_ok=True)
-
             record = {"id": tid, "title": title, "role": role, "path": str(theme_dir)}
             summary["selected"].append(record)
+
+            if skip_if_downloaded and _already_downloaded(theme_dir, tid):
+                summary["skipped"].append({**record, "reason": "already_downloaded"})
+                print(f"Skipping already-downloaded theme {tid} -> {theme_dir} ({title})")
+                continue
+
+            theme_dir.mkdir(parents=True, exist_ok=True)
 
             command = [
                 self.shopify_cli_executable,
@@ -571,6 +604,7 @@ class ThemeCommandRunner:
                 if proc.returncode != 0:
                     err = proc.stderr.strip() or proc.stdout.strip() or "theme pull failed"
                     raise RuntimeError(err)
+                _write_manifest(theme_dir, t)
                 summary["downloaded"].append(record)
             except Exception as e:
                 summary["errors"].append({**record, "error": str(e)})
