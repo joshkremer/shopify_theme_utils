@@ -7,7 +7,7 @@ import csv
 import json
 import re
 from typing import Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class LiveThemeOverwriteError(RuntimeError):
@@ -427,17 +427,32 @@ class ThemeCommandRunner:
 
     @staticmethod
     def _parse_theme_sort_ts(theme: dict[str, Any]) -> datetime:
-        """Pick a best-effort timestamp to sort themes by recency."""
-        for key in ("updated_at", "created_at", "updatedAt", "createdAt"):
+        """Pick a best-effort timestamp to sort themes by recency.
+
+        Returns a timezone-aware datetime when possible. Missing/unparseable
+        values evaluate as very old so they sort last.
+        """
+        for key in (
+            "updated_at",
+            "created_at",
+            "last_published_at",
+            "updatedAt",
+            "createdAt",
+            "lastPublishedAt",
+        ):
             v = theme.get(key)
             if isinstance(v, str) and v:
-                # ISO-8601 expected. `fromisoformat` doesn't like trailing Z.
-                vv = v.replace("Z", "+00:00")
+                vv = v.strip().replace("Z", "+00:00")
                 try:
-                    return datetime.fromisoformat(vv)
+                    dt = datetime.fromisoformat(vv)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
+                    return dt
                 except Exception:
                     continue
-        return datetime.min
+
+        # Very old, but timezone-aware to avoid naive/aware comparison issues.
+        return datetime.min.replace(tzinfo=datetime.now(timezone.utc).tzinfo)
 
     def download_previous_themes(
         self,
