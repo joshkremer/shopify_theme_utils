@@ -50,6 +50,7 @@ class ThemeCommandRunner:
         self.allow_live = kwargs.get('allow_live')
         self.shopify_cli_executable = "shopify"
         self.shopify_theme_dir = find_theme_base_dir()
+        self.project_root_dir = self.shopify_theme_dir.parent
         print("*******************************")
         print("running Shopify Utils")
         print("run in terminal to authenticate...")
@@ -488,7 +489,13 @@ class ThemeCommandRunner:
             if len(selected) >= count:
                 break
 
-        out_base = Path(dest_dir)
+        # Resolve destination relative to the *project root* (parent of theme_files)
+        # so backups don't get nested inside theme_files.
+        dest_path = Path(dest_dir)
+        if not dest_path.is_absolute():
+            out_base = self.project_root_dir / dest_path
+        else:
+            out_base = dest_path
         out_base.mkdir(parents=True, exist_ok=True)
 
         used_names: dict[str, int] = {}
