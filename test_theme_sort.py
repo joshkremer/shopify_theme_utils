@@ -75,3 +75,20 @@ def test_manifest_skip_logic(tmp_path=None):
 
     assert already_downloaded(theme_dir, 123) is True
     assert already_downloaded(theme_dir, 124) is False
+
+
+def test_theme_display_name_and_matching_case_insensitive():
+    themes = [
+        {"id": 1, "name": "My Theme", "updated_at": "2025-01-01T00:00:00Z"},
+        {"id": 2, "title": "Another Theme", "updated_at": "2025-01-02T00:00:00Z"},
+    ]
+    wanted = ["my theme", "ANOTHER THEME"]
+    wanted_lc = {n.casefold() for n in wanted}
+
+    selected = []
+    for t in sorted(themes, key=ThemeCommandRunner._parse_theme_sort_ts, reverse=True):
+        disp = ThemeCommandRunner._theme_display_name(t)
+        if disp and disp.casefold() in wanted_lc:
+            selected.append(t)
+
+    assert {ThemeCommandRunner._theme_display_name(t) for t in selected} == {"My Theme", "Another Theme"}

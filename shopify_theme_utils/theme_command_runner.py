@@ -57,6 +57,17 @@ class ThemeCommandRunner:
         print(f"shopify theme list --store {self.store_shortname}")
         print("*******************************")
 
+    @staticmethod
+    def _theme_display_name(theme: dict[str, Any]) -> str:
+        """Best-effort theme display name from Shopify CLI theme list payload."""
+        name = theme.get("name")
+        if isinstance(name, str) and name.strip():
+            return name.strip()
+        title = theme.get("title")
+        if isinstance(title, str) and title.strip():
+            return title.strip()
+        return ""
+
     def theme_push(self, theme_name=None):
         print(self.shopify_theme_dir)
         command = [
@@ -465,8 +476,12 @@ class ThemeCommandRunner:
         allow_live: bool | None = None,
         continue_on_error: bool = True,
         skip_if_downloaded: bool = True,
+        theme_names: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Download the most recent `count` themes into `previous-themes/<title>/`.
+        """Download themes into `previous-themes/<title>/`.
+
+        If `theme_names` is provided, downloads those themes (by name/title)
+        instead of using the most-recent `count` selection.
 
         Args:
             count: Number of themes to download (most recent first). If None,
@@ -477,6 +492,9 @@ class ThemeCommandRunner:
             continue_on_error: If True, keep going when a theme pull fails.
             skip_if_downloaded: If True, skip themes that appear to already be
                 downloaded (based on a manifest file in the destination dir).
+            theme_names: Optional list of theme names/titles to download.
+                Matching is case-insensitive and compares against the theme's
+                `name` or `title` as returned by `shopify theme list --json`.
 
         Returns:
             Summary dict with downloaded themes and any errors.
@@ -496,19 +514,47 @@ class ThemeCommandRunner:
         except Exception:
             pass
 
-        # Sort by most-recent-ish timestamp.
+        # Sort by most-recent-ish timestamp (used for default selection and also
+        # helpful for deterministic ordering when theme_names is provided).
         themes_sorted = sorted(themes, key=self._parse_theme_sort_ts, reverse=True)
 
         selected: list[dict[str, Any]] = []
-        for t in themes_sorted:
-            tid = t.get("id")
-            if tid is None:
-                continue
-            if not include_live and live_id is not None and str(tid) == str(live_id):
-                continue
-            selected.append(t)
-            if count_int is not None and len(selected) >= count_int:
-                break
+
+        if theme_names is not None:
+            wanted = [n.strip() for n in theme_names if isinstance(n, str) and n.strip()]
+            if not wanted:
+                raise ValueError("theme_names was provided but empty")
+            wanted_lc = {n.casefold() for n in wanted}
+
+            # Pick themes whose display name matches one of the requested names.
+            for t in themes_sorted:
+                tid = t.get("id")
+                if tid is None:
+                    continue
+                if not include_live and live_id is not None and str(tid) == str(live_id):
+                    continue
+                disp = self._theme_display_name(t)
+                if disp and disp.casefold() in wanted_lc:
+                    selected.append(t)
+
+            found_lc = {self._theme_display_name(t).casefold() for t in selected if self._theme_display_name(t)}
+            missing = [n for n in wanted if n.casefold() not in found_lc]
+            if missing:
+                print(
+                    "[yellow]Some requested theme names were not found:[/yellow] "
+                    + ", ".join(missing)
+                )
+        else:
+            # Default behavior: select most recent themes.
+            for t in themes_sorted:
+                tid = t.get("id")
+                if tid is None:
+                    continue
+                if not include_live and live_id is not None and str(tid) == str(live_id):
+                    continue
+                selected.append(t)
+                if count_int is not None and len(selected) >= count_int:
+                    break
 
         # Resolve destination relative to the *project root* (parent of theme_files)
         # so backups don't get nested inside theme_files.
@@ -522,7 +568,9 @@ class ThemeCommandRunner:
         used_names: dict[str, int] = {}
         summary: dict[str, Any] = {
             "dest_dir": str(out_base.resolve()),
-            "requested": count_int if count_int is not None else len(selected),
+            "requested": (
+                len(theme_names) if theme_names is not None else (count_int if count_int is not None else len(selected))
+            ),
             "selected": [],
             "downloaded": [],
             "skipped": [],
@@ -556,7 +604,7 @@ class ThemeCommandRunner:
 
         for t in selected:
             tid = t.get("id")
-            title = t.get("name") or t.get("title") or f"theme-{tid}"
+            title = self._theme_display_name(t) or f"theme-{tid}"
             role = t.get("role")
 
             if live_id is not None and str(tid) == str(live_id):
