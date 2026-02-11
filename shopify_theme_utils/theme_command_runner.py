@@ -458,7 +458,7 @@ class ThemeCommandRunner:
 
     def download_previous_themes(
         self,
-        count: int,
+        count: int | None = None,
         *,
         dest_dir: str | Path = "previous-themes",
         include_live: bool | None = None,
@@ -468,7 +468,8 @@ class ThemeCommandRunner:
         """Download the most recent `count` themes into `previous-themes/<title>/`.
 
         Args:
-            count: Number of themes to download (most recent first).
+            count: Number of themes to download (most recent first). If None,
+                downloads all eligible themes.
             dest_dir: Output directory (default: ./previous-themes).
             include_live: If True, include the live theme in candidates.
             allow_live: Explicit consent to download live theme (extra guardrail).
@@ -477,9 +478,9 @@ class ThemeCommandRunner:
         Returns:
             Summary dict with downloaded themes and any errors.
         """
-        if count is None or int(count) <= 0:
-            raise ValueError("count must be a positive integer")
-        count = int(count)
+        if count is not None and int(count) <= 0:
+            raise ValueError("count must be a positive integer or None")
+        count_int = int(count) if count is not None else None
 
         effective_allow_live = self.allow_live if allow_live is None else allow_live
         if include_live is None:
@@ -503,7 +504,7 @@ class ThemeCommandRunner:
             if not include_live and live_id is not None and str(tid) == str(live_id):
                 continue
             selected.append(t)
-            if len(selected) >= count:
+            if count_int is not None and len(selected) >= count_int:
                 break
 
         # Resolve destination relative to the *project root* (parent of theme_files)
@@ -518,7 +519,7 @@ class ThemeCommandRunner:
         used_names: dict[str, int] = {}
         summary: dict[str, Any] = {
             "dest_dir": str(out_base.resolve()),
-            "requested": count,
+            "requested": count_int if count_int is not None else len(selected),
             "selected": [],
             "downloaded": [],
             "errors": [],
