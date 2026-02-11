@@ -7,6 +7,7 @@ import csv
 import json
 import re
 from typing import Any
+from datetime import datetime
 
 
 class LiveThemeOverwriteError(RuntimeError):
@@ -371,4 +372,185 @@ class ThemeCommandRunner:
                 summary["files_changed"].append(str(template_path))
 
         print(f"Processed {len(templates)} templates in {templates_dir}")
+        return summary
+
+    def _theme_list_json(self) -> list[dict[str, Any]]:
+        """Return themes from `shopify theme list --json`.
+
+        Shopify CLI output format has varied between versions. This function
+        tolerates both a top-level list and a dict with a `themes` key.
+        """
+        command = [
+            self.shopify_cli_executable,
+            "theme",
+            "list",
+            "--store",
+            self.store_shortname,
+            "--json",
+        ]
+        proc = subprocess.run(command, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr.strip() or "Failed to list themes")
+
+        stdout = (proc.stdout or "").strip()
+        start = min([i for i in (stdout.find("["), stdout.find("{")) if i != -1], default=-1)
+        if start == -1:
+            raise ValueError("Unexpected JSON output from shopify theme list")
+        payload = json.loads(stdout[start:])
+
+        if isinstance(payload, dict) and "themes" in payload:
+            themes = payload["themes"]
+        else:
+            themes = payload
+
+        if not isinstance(themes, list):
+            raise ValueError("Unexpected themes payload")
+
+        # Ensure dict shape.
+        return [t for t in themes if isinstance(t, dict)]
+
+    @staticmethod
+    def _safe_dirname(name: str, *, max_len: int = 80) -> str:
+        """Make a safe directory name from a theme title."""
+        base = (name or "").strip() or "untitled"
+        base = re.sub(r"\s+", " ", base)
+        # Replace path separators & reserved-ish characters.
+        base = re.sub(r"[\\/]+", "-", base)
+        base = re.sub(r"[^A-Za-z0-9 ._\-()]", "", base)
+        base = base.strip(" .")
+        if not base:
+            base = "untitled"
+        if len(base) > max_len:
+            base = base[:max_len].rstrip(" .")
+        return base
+
+    @staticmethod
+    def _parse_theme_sort_ts(theme: dict[str, Any]) -> datetime:
+        """Pick a best-effort timestamp to sort themes by recency."""
+        for key in ("updated_at", "created_at", "updatedAt", "createdAt"):
+            v = theme.get(key)
+            if isinstance(v, str) and v:
+                # ISO-8601 expected. `fromisoformat` doesn't like trailing Z.
+                vv = v.replace("Z", "+00:00")
+                try:
+                    return datetime.fromisoformat(vv)
+                except Exception:
+                    continue
+        return datetime.min
+
+    def download_previous_themes(
+        self,
+        count: int,
+        *,
+        dest_dir: str | Path = "previous-themes",
+        include_live: bool | None = None,
+        allow_live: bool | None = None,
+        continue_on_error: bool = True,
+    ) -> dict[str, Any]:
+        """Download the most recent `count` themes into `previous-themes/<title>/`.
+
+        Args:
+            count: Number of themes to download (most recent first).
+            dest_dir: Output directory (default: ./previous-themes).
+            include_live: If True, include the live theme in candidates.
+            allow_live: Explicit consent to download live theme (extra guardrail).
+            continue_on_error: If True, keep going when a theme pull fails.
+
+        Returns:
+            Summary dict with downloaded themes and any errors.
+        """
+        if count is None or int(count) <= 0:
+            raise ValueError("count must be a positive integer")
+        count = int(count)
+
+        effective_allow_live = self.allow_live if allow_live is None else allow_live
+        if include_live is None:
+            include_live = False
+
+        themes = self._theme_list_json()
+        live_id = None
+        try:
+            live_id = self._get_live_theme_id()
+        except Exception:
+            pass
+
+        # Sort by most-recent-ish timestamp.
+        themes_sorted = sorted(themes, key=self._parse_theme_sort_ts, reverse=True)
+
+        selected: list[dict[str, Any]] = []
+        for t in themes_sorted:
+            tid = t.get("id")
+            if tid is None:
+                continue
+            if not include_live and live_id is not None and str(tid) == str(live_id):
+                continue
+            selected.append(t)
+            if len(selected) >= count:
+                break
+
+        out_base = Path(dest_dir)
+        out_base.mkdir(parents=True, exist_ok=True)
+
+        used_names: dict[str, int] = {}
+        summary: dict[str, Any] = {
+            "dest_dir": str(out_base.resolve()),
+            "requested": count,
+            "selected": [],
+            "downloaded": [],
+            "errors": [],
+            "skipped_live": False,
+        }
+
+        for t in selected:
+            tid = t.get("id")
+            title = t.get("name") or t.get("title") or f"theme-{tid}"
+            role = t.get("role")
+
+            if live_id is not None and str(tid) == str(live_id):
+                if not effective_allow_live:
+                    summary["skipped_live"] = True
+                    msg = (
+                        "Refusing to download the live theme without explicit consent. "
+                        "Pass allow_live=True (or set allow_live on ThemeCommandRunner) to proceed."
+                    )
+                    print(f"[bold red]{msg}[/bold red]")
+                    continue
+
+            safe = self._safe_dirname(str(title))
+            n = used_names.get(safe, 0) + 1
+            used_names[safe] = n
+            if n > 1:
+                safe = f"{safe}-{n}"
+
+            theme_dir = out_base / safe
+            theme_dir.mkdir(parents=True, exist_ok=True)
+
+            record = {"id": tid, "title": title, "role": role, "path": str(theme_dir)}
+            summary["selected"].append(record)
+
+            command = [
+                self.shopify_cli_executable,
+                "theme",
+                "pull",
+                "--theme",
+                str(tid),
+                "--store",
+                self.store_shortname,
+                "--path",
+                str(theme_dir),
+            ]
+
+            try:
+                print(f"Downloading theme {tid} -> {theme_dir} ({title})")
+                proc = subprocess.run(command, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    err = proc.stderr.strip() or proc.stdout.strip() or "theme pull failed"
+                    raise RuntimeError(err)
+                summary["downloaded"].append(record)
+            except Exception as e:
+                summary["errors"].append({**record, "error": str(e)})
+                print(f"[red]Failed to download theme {tid} ({title}):[/red] {e}")
+                if not continue_on_error:
+                    break
+
         return summary
