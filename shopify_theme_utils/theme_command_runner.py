@@ -531,6 +531,8 @@ class ThemeCommandRunner:
         except Exception:
             pass
 
+        live_id_norm = self._normalize_theme_id(live_id) if live_id is not None else ""
+
         # Sort by most-recent-ish timestamp (used for default selection and also
         # helpful for deterministic ordering when theme_names is provided).
         themes_sorted = sorted(themes, key=self._parse_theme_sort_ts, reverse=True)
