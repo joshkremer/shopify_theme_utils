@@ -489,6 +489,7 @@ class ThemeCommandRunner:
         continue_on_error: bool = True,
         skip_if_downloaded: bool = True,
         theme_names: list[str | int] | None = None,
+        allow_pull_by_id_not_listed: bool = True,
     ) -> dict[str, Any]:
         """Download themes into `previous-themes/<title>/`.
 
@@ -507,6 +508,10 @@ class ThemeCommandRunner:
             theme_names: Optional list of theme names/titles to download.
                 Matching is case-insensitive and compares against the theme's
                 `name` or `title` as returned by `shopify theme list --json`.
+            allow_pull_by_id_not_listed: If True and `theme_names` contains numeric
+                IDs that aren't present in `shopify theme list --json`, attempt to
+                pull them anyway by id. This helps when CLI list output is filtered
+                by permissions or other factors.
 
         Returns:
             Summary dict with downloaded themes and any errors.
@@ -531,6 +536,7 @@ class ThemeCommandRunner:
         themes_sorted = sorted(themes, key=self._parse_theme_sort_ts, reverse=True)
 
         selected: list[dict[str, Any]] = []
+        explicit_id_fallbacks: list[str] = []
 
         if theme_names is not None:
             wanted_raw = [x for x in theme_names if x is not None]
@@ -567,17 +573,29 @@ class ThemeCommandRunner:
             }
 
             missing: list[str] = []
+            missing_id_norms: list[str] = []
             for n in wanted_strs:
                 n_norm = self._normalize_theme_id(n)
-                if n_norm and n_norm in wanted_ids:
+                # Treat as id request if it normalizes to digits and the original looked id-like.
+                is_id_request = n_norm.isdigit() and (n.strip().lstrip('#').isdigit())
+                if is_id_request:
                     if n_norm not in found_ids:
                         missing.append(n)
+                        missing_id_norms.append(n_norm)
                 else:
                     if n.casefold() not in found_lc:
                         missing.append(n)
 
             if missing:
-                print("[yellow]Some requested themes were not found:[/yellow] " + ", ".join(missing))
+                print("[yellow]Some requested themes were not found in theme list:[/yellow] " + ", ".join(missing))
+
+            if allow_pull_by_id_not_listed and missing_id_norms:
+                # De-dup while preserving order.
+                seen = set()
+                for mid in missing_id_norms:
+                    if mid not in seen:
+                        explicit_id_fallbacks.append(mid)
+                        seen.add(mid)
         else:
             # Default behavior: select most recent themes.
             for t in themes_sorted:
@@ -693,5 +711,55 @@ class ThemeCommandRunner:
                 print(f"[red]Failed to download theme {tid} ({title}):[/red] {e}")
                 if not continue_on_error:
                     break
+
+        # Attempt explicit pulls by id for ids that weren't listed (best effort).
+        for tid_norm in explicit_id_fallbacks:
+            # live guard: if we can detect live id and it matches, still honor allow_live.
+            if live_id is not None and self._normalize_theme_id(live_id) == tid_norm and not effective_allow_live:
+                summary["skipped_live"] = True
+                msg = (
+                    "Refusing to download the live theme without explicit consent. "
+                    "Pass allow_live=True (or set allow_live on ThemeCommandRunner) to proceed."
+                )
+                print(f"[bold red]{msg}[/bold red]")
+                continue
+
+            title = f"theme-{tid_norm}"
+            safe = self._safe_dirname(title)
+            theme_dir = out_base / safe
+            record = {"id": tid_norm, "title": title, "role": None, "path": str(theme_dir)}
+            summary["selected"].append(record)
+
+            if skip_if_downloaded and _already_downloaded(theme_dir, tid_norm):
+                summary["skipped"].append({**record, "reason": "already_downloaded"})
+                print(f"Skipping already-downloaded theme {tid_norm} -> {theme_dir}")
+                continue
+
+            theme_dir.mkdir(parents=True, exist_ok=True)
+            command = [
+                self.shopify_cli_executable,
+                "theme",
+                "pull",
+                "--theme",
+                str(tid_norm),
+                "--store",
+                self.store_shortname,
+                "--path",
+                str(theme_dir),
+            ]
+
+            try:
+                print(f"Downloading theme {tid_norm} -> {theme_dir} (id-only)")
+                proc = subprocess.run(command, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    err = proc.stderr.strip() or proc.stdout.strip() or "theme pull failed"
+                    raise RuntimeError(err)
+                _write_manifest(theme_dir, {"id": tid_norm, "name": title, "role": None})
+                summary["downloaded"].append(record)
+            except Exception as e:
+                summary["errors"].append({**record, "error": str(e)})
+                print(f"[red]Failed to download theme {tid_norm}:[/red] {e}")
+                if not continue_on_error:
+                    return summary
 
         return summary
