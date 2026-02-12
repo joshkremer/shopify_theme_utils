@@ -574,13 +574,19 @@ class ThemeCommandRunner:
 
             missing: list[str] = []
             missing_id_norms: list[str] = []
+            missing_live_requested = False
+
             for n in wanted_strs:
                 n_norm = self._normalize_theme_id(n)
                 # Treat as id request if it normalizes to digits and the original looked id-like.
                 is_id_request = n_norm.isdigit() and (n.strip().lstrip('#').isdigit())
                 if is_id_request:
                     if n_norm not in found_ids:
-                        missing.append(n)
+                        # If this id is live and include_live=False, don't call it "not found".
+                        if live_id_norm and n_norm == live_id_norm and not include_live:
+                            missing_live_requested = True
+                        else:
+                            missing.append(n)
                         missing_id_norms.append(n_norm)
                 else:
                     if n.casefold() not in found_lc:
@@ -588,6 +594,14 @@ class ThemeCommandRunner:
 
             if missing:
                 print("[yellow]Some requested themes were not found in theme list:[/yellow] " + ", ".join(missing))
+
+            if missing_live_requested and not effective_allow_live:
+                # Single clear message about how to proceed.
+                msg = (
+                    "Requested theme id is the live theme. Refusing to download it without explicit consent.\n"
+                    "To proceed, pass include_live=True and allow_live=True (or set allow_live on ThemeCommandRunner)."
+                )
+                print(f"[bold red]{msg}[/bold red]")
 
             if allow_pull_by_id_not_listed and missing_id_norms:
                 # De-dup while preserving order.

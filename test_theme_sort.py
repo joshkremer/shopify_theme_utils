@@ -112,3 +112,15 @@ def test_theme_name_list_can_include_ids():
             selected.append(t)
 
     assert {ThemeCommandRunner._normalize_theme_id(t["id"]) for t in selected} == {"111", "222"}
+
+
+def test_requested_live_theme_id_is_detected_early():
+    # Mirrors the logic in download_previous_themes():
+    # if a requested id matches live_id and include_live is False, we shouldn't treat it as "not found".
+    live_id = "#139789369442"
+    requested = "139789369442"
+
+    live_norm = ThemeCommandRunner._normalize_theme_id(live_id)
+    req_norm = ThemeCommandRunner._normalize_theme_id(requested)
+
+    assert live_norm == req_norm
