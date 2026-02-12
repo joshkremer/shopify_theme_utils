@@ -467,6 +467,18 @@ class ThemeCommandRunner:
         # Very old, but timezone-aware to avoid naive/aware comparison issues.
         return datetime.min.replace(tzinfo=datetime.now(timezone.utc).tzinfo)
 
+    @staticmethod
+    def _normalize_theme_id(value: Any) -> str:
+        """Normalize a theme id to digits-only string for comparison."""
+        if value is None:
+            return ""
+        s = str(value).strip()
+        if s.startswith("#"):
+            s = s[1:].strip()
+        # Keep digits only (Shopify theme ids are numeric).
+        s2 = "".join(ch for ch in s if ch.isdigit())
+        return s2
+
     def download_previous_themes(
         self,
         count: int | None = None,
@@ -476,11 +488,11 @@ class ThemeCommandRunner:
         allow_live: bool | None = None,
         continue_on_error: bool = True,
         skip_if_downloaded: bool = True,
-        theme_names: list[str] | None = None,
+        theme_names: list[str | int] | None = None,
     ) -> dict[str, Any]:
         """Download themes into `previous-themes/<title>/`.
 
-        If `theme_names` is provided, downloads those themes (by name/title)
+        If `theme_names` is provided, downloads those themes (by name/title or id)
         instead of using the most-recent `count` selection.
 
         Args:
@@ -521,12 +533,14 @@ class ThemeCommandRunner:
         selected: list[dict[str, Any]] = []
 
         if theme_names is not None:
-            wanted = [n.strip() for n in theme_names if isinstance(n, str) and n.strip()]
-            if not wanted:
+            wanted_raw = [x for x in theme_names if x is not None]
+            wanted_strs = [str(x).strip() for x in wanted_raw if str(x).strip()]
+            if not wanted_strs:
                 raise ValueError("theme_names was provided but empty")
 
-            wanted_lc = {n.casefold() for n in wanted}
-            wanted_ids = {w for w in wanted if w.isdigit()}
+            wanted_lc = {n.casefold() for n in wanted_strs}
+            wanted_ids = {self._normalize_theme_id(w) for w in wanted_strs}
+            wanted_ids.discard("")
 
             # Pick themes whose id or display name matches one of the requested values.
             for t in themes_sorted:
@@ -536,15 +550,32 @@ class ThemeCommandRunner:
                 if not include_live and live_id is not None and str(tid) == str(live_id):
                     continue
 
-                tid_s = str(tid)
+                tid_norm = self._normalize_theme_id(tid)
                 disp = self._theme_display_name(t)
-                if tid_s in wanted_ids or (disp and disp.casefold() in wanted_lc):
+                if (tid_norm and tid_norm in wanted_ids) or (disp and disp.casefold() in wanted_lc):
                     selected.append(t)
 
-            found_lc = {self._theme_display_name(t).casefold() for t in selected if self._theme_display_name(t)}
-            found_ids = {str(t.get("id")) for t in selected if t.get("id") is not None}
+            found_lc = {
+                self._theme_display_name(t).casefold()
+                for t in selected
+                if self._theme_display_name(t)
+            }
+            found_ids = {
+                self._normalize_theme_id(t.get("id"))
+                for t in selected
+                if t.get("id") is not None
+            }
 
-            missing = [n for n in wanted if (n.isdigit() and n not in found_ids) or (not n.isdigit() and n.casefold() not in found_lc)]
+            missing: list[str] = []
+            for n in wanted_strs:
+                n_norm = self._normalize_theme_id(n)
+                if n_norm and n_norm in wanted_ids:
+                    if n_norm not in found_ids:
+                        missing.append(n)
+                else:
+                    if n.casefold() not in found_lc:
+                        missing.append(n)
+
             if missing:
                 print("[yellow]Some requested themes were not found:[/yellow] " + ", ".join(missing))
         else:
